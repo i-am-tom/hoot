@@ -5,7 +5,7 @@
 module Control.Monad.Logger where
 
 import Control.Monad.Trans.Reader (ReaderT (..))
-import Data.Functor.Contravariant (Contravariant (..))
+import Data.Functor.Contravariant (Contravariant (..), Op (..))
 import Data.Kind (Type)
 import Data.Monoid (Ap (..))
 
@@ -40,11 +40,8 @@ class (forall (w :: Type) (m :: Type -> Type). Monad m => Monad (t w m))
 -- the action of logging to the console, or database, or anywhere else.
 newtype Sink (m :: Type -> Type) (x :: Type)
   = Sink { withSink :: x -> m () }
-  deriving (Semigroup, Monoid)
-    via (Ap (ReaderT x m) ())
-
-instance Contravariant (Sink m) where
-  contramap f (Sink k) = Sink (k . f)
+  deriving (Semigroup, Monoid) via (Ap (ReaderT x m) ())
+  deriving Contravariant via (Op (m ()))
 
 -- | A monad for logging values using an action in the @m@ context. Internally,
 -- this is a 'Sink' action, and probably involves some 'IO'.

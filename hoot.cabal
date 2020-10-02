@@ -12,7 +12,7 @@ library
                        transformers >= 0.5 && < 0.6
   hs-source-dirs:      src
   default-language:    Haskell2010
-  ghc-options:         -Wall, -Wextra
+  ghc-options:         -Wall -Wextra
 
 executable hoot
   main-is:             Main.hs
@@ -23,12 +23,16 @@ executable hoot
 test-suite hoot-test
   default-language:    Haskell2010
   type:                exitcode-stdio-1.0
-  ghc-options:         -Wall, -Wextra
+  ghc-options:         -Wall -Wextra
   hs-source-dirs:      test
   main-is:             Driver.hs
   build-depends:       hoot,
+                       aeson >= 1.5 && < 1.6,
                        base >= 4.14 && < 4.15,
                        hedgehog >= 1.0 && < 1.1,
                        tasty >= 1.2 && < 1.3,
+                       tasty-discover >= 4.2 && < 4.3,
                        tasty-hedgehog >= 1.0 && < 1.1,
-                       transformers >= 0.5 && < 0.6
+                       tasty-hspec >= 1.1 && < 1.2,
+                       transformers >= 0.5 && < 0.6,
+                       vector >= 0.12 && < 0.13

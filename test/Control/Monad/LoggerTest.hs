@@ -77,4 +77,5 @@ hprop_PureT_composition = property do
 
 hprop_PureT_homomorphism :: Property
 hprop_PureT_homomorphism = property do
-  log @PureT 3 `logging` show === log (show 3)
+  x <- forAll (Gen.int (Range.linear 0 1000))
+  log @PureT x `logging` show === log (show x)

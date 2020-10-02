@@ -1,4 +1,6 @@
-# <div align="center">🦉 Hoot ![Haskell CI](https://github.com/i-am-tom/hoot/workflows/Haskell%20CI/badge.svg?branch=main)</div>
+# <div align="center">🦉 Hoot</div>
+
+![Haskell CI](https://github.com/i-am-tom/hoot/workflows/Haskell%20CI/badge.svg?branch=main)
 
 Lots of static site generators exist, but most of them squarely target _expert
 users_. They rely on you understanding __HTML__ or __Markdown__, and usually

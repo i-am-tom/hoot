@@ -7,6 +7,15 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+
+{-|
+Module      : Hoot.Contentful.Id
+Description : A data type for Contentful IDs.
+Copyright   : (c) Tom Harding, 2020
+License     : MIT
+Maintainer  : i.am.tom.harding@gmail.com
+Stability   : experimental
+-}
 module Hoot.Contentful.Id where
 
 import Data.Aeson ((.:), FromJSON (..), Value)

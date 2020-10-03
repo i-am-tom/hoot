@@ -2,6 +2,15 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE TypeFamilies #-}
+
+{-|
+Module      : Control.Monad.Logger
+Description : An interface and implementation for logging.
+Copyright   : (c) Tom Harding, 2020
+License     : MIT
+Maintainer  : i.am.tom.harding@gmail.com
+Stability   : experimental
+-}
 module Control.Monad.Logger where
 
 import Control.Monad.Trans.Reader (ReaderT (..))

@@ -1,7 +1,10 @@
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 {-|
 Module      : Control.Monad.Logger
@@ -14,54 +17,55 @@ Stability   : experimental
 module Control.Monad.Logger where
 
 import Control.Monad.Trans.Reader (ReaderT (..))
-import Data.Functor.Contravariant (Contravariant (..), Op (..))
+import qualified Control.Monad.Trans.Writer.CPS as CPS
+import qualified Control.Monad.Trans.Writer.Lazy as Lazy
+import qualified Control.Monad.Trans.Writer.Strict as Strict
 import Data.Kind (Type)
-import Data.Monoid (Ap (..))
+import Prelude hiding (log)
 
--- | A class for monads indexed by the type of the logs that they can handle.
--- They should be entirely polymorphic in the logging type, as the function of
--- an implementer is to thread these logs through to parent call sites.
+-- | The interface for 'Logger' looks very similar to 'MonadWriter', but it
+-- doesn't require @Monoid w@. Conceptually, we can think of @MonadLogger w m@
+-- as being morally equivalent to @MonadWriter [w] m@; we're just logging each
+-- action in turn.
 --
--- Laws:
---
--- prop> m `logging` id == m
---
--- prop> (m `logging` f) `logging` g == m `logging` (g . f)
---
--- prop> log x `logging` f == log (f x)
---
--- TODO: this doesn't compose super well because we can't just parameterise the
--- type of @w@. If we did, we couldn't implement 'logging'. There probably /is/
--- a neater abstraction, but it needs further research.
-class (forall (w :: Type) (m :: Type -> Type). Monad m => Monad (t w m))
-    => MonadLogger (t :: Type -> (Type -> Type) -> Type -> Type) where
+-- However, we typically don't "collect" logs; we just print them out,
+-- according to the provided sinking function.
+class Monad m => MonadLogger (w :: Type) (m :: Type -> Type) | m -> w where
 
-  -- | Create a new logging value. For the sake of @do@-notation, all values
-  -- logged within a function should be of the same type.
-  log :: Monad m => w -> t w m ()
+  -- | Log a message with the sinking function.
+  log :: w -> m ()
 
-  -- | Transform the logs within a given action. Typically, this is used to
-  -- absorb the logs of a child function into the logs of a parent function.
-  logging :: Monad m => t w m x -> (w -> w') -> t w' m x
+-- | In our code, we should try not to concretise the transformer stack
+-- anywhere but at the application level. If we simply stick to constraints, we
+-- can use this function to map the logs of an inner function to an outer one.
+logging :: MonadLogger o m => LoggerT i m x -> (i -> o) -> m x
+logging inner f = runLoggerT inner (log . f)
 
--- | A sink is a function that "logs" a given value according to some monadic
--- context. In practice, @m@ is going to be some 'IO'-capable monad to perform
--- the action of logging to the console, or database, or anywhere else.
-newtype Sink (m :: Type -> Type) (x :: Type)
-  = Sink { withSink :: x -> m () }
-  deriving (Semigroup, Monoid) via (Ap (ReaderT x m) ())
-  deriving Contravariant via (Op (m ()))
-
--- | A monad for logging values using an action in the @m@ context. Internally,
--- this is a 'Sink' action, and probably involves some 'IO'.
+-- | A transformer for logging values with an action in the context of the
+-- inner @m@ monad. Intuitively quite similar to 'Control.Monad.Trans.WriterT',
+-- except that the logged values aren't necessarily stored; typically, they're
+-- handled immediately, e.g. by printing them to a terminal.
 newtype LoggerT (w :: Type) (m :: Type -> Type) (x :: Type)
-  = LoggerT { runLoggerT :: Sink m w -> m x }
+  = LoggerT { runLoggerT :: (w -> m ()) -> m x }
   deriving (Functor, Applicative, Monad)
-    via (ReaderT (Sink m w) m)
+    via (ReaderT (ReaderT w m ()) m)
 
-instance MonadLogger LoggerT where
+instance (Monad m, w ~ w')
+    => MonadLogger w (LoggerT w' m) where
   log :: Monad m => w -> LoggerT w m ()
-  log = LoggerT . flip withSink
+  log w = LoggerT \sink -> sink w
 
-  logging :: LoggerT w m x -> (w -> w') -> LoggerT w' m x
-  logging (LoggerT k) expand = LoggerT (k . contramap expand)
+instance (Monad m, w ~ w')
+    => MonadLogger w' (CPS.WriterT [w] m) where
+  log :: Monad m => w -> CPS.WriterT [w] m ()
+  log = CPS.tell . pure
+
+instance (Monad m, w ~ w')
+    => MonadLogger w' (Lazy.WriterT [w] m) where
+  log :: Monad m => w -> Lazy.WriterT [w] m ()
+  log = Lazy.tell . pure
+
+instance (Monad m, w ~ w')
+    => MonadLogger w' (Strict.WriterT [w] m) where
+  log :: Monad m => w -> Strict.WriterT [w] m ()
+  log = Strict.tell . pure

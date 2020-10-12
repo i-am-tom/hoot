@@ -21,13 +21,12 @@ module Hoot.Contentful.ContentType where
 import Data.Aeson ((.:), FromJSON (..), Value)
 import qualified Data.Aeson as Aeson
 import Data.Aeson.Types (Parser)
-import Data.Hashable (Hashable)
 import Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HashMap
+import Data.Hashable (Hashable)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import GHC.Generics (Generic)
-import Hoot.Contentful.Id (Catalogue (..), Id)
+import Hoot.Contentful.Id (Id)
 import Prelude hiding (id)
 
 -- | A content type represents a schema for content entries, as well as some
@@ -36,10 +35,11 @@ import Prelude hiding (id)
 -- user interface.
 data ContentType
   = ContentType
-      { name         :: Text            -- ^ The name defined in Contentful.
-      , description  :: Maybe Text      -- ^ The optional description.
-      , displayField :: Text            -- ^ The field used for an entry title.
-      , fields       :: Catalogue Field -- ^ The field types.
+      { id           :: Id ContentType     -- ^ The ID for the content type.
+      , name         :: Text               -- ^ The name defined in Contentful.
+      , description  :: Maybe Text         -- ^ The optional description.
+      , displayField :: Text               -- ^ The field used for an entry title.
+      , fields       :: HashMap Text Field -- ^ The field types.
       }
   deriving stock (Eq, Generic, Ord, Show)
   deriving anyclass (Hashable)
@@ -47,20 +47,13 @@ data ContentType
 instance FromJSON ContentType where
   parseJSON :: Value -> Parser ContentType
   parseJSON = Aeson.withObject "ContentType" \obj -> do
+    id <- obj .: "sys" >>= Aeson.withObject "sys" \sys -> sys .: "id"
+
     name         <- obj .: "name"
     description  <- obj .: "description"
     displayField <- obj .: "displayField"
+    fields       <- obj .: "fields"
 
-    let parseIdentifier :: Value -> Parser (Id Field)
-        parseIdentifier = Aeson.withObject "field" \field -> field .: "id"
-
-    pairs <- obj .: "fields" >>= traverse \json -> do
-      field <- parseJSON json
-      id    <- parseIdentifier json
-
-      pure ( id, field )
-
-    let fields = Catalogue (HashMap.fromList pairs)
     pure ContentType{..}
 
 -- | The type of nested Contentful links.
@@ -100,10 +93,10 @@ data Field
 
 instance FromJSON Field where
   parseJSON :: Value -> Parser Field
-  parseJSON = Aeson.withObject "Field" \field -> do
+  parseJSON = Aeson.withObject "Field" \obj -> do
     let parseType :: HashMap Text Value -> Parser Type
-        parseType obj = obj .: "type" >>= Aeson.withText "type" \case
-          "Array"    -> obj .: "items" >>= fmap Array . parseType
+        parseType o = o .: "type" >>= Aeson.withText "type" \case
+          "Array"    -> o .: "items" >>= fmap Array . parseType
           "Boolean"  -> pure Boolean
           "Date"     -> pure Date
           "Integer"  -> pure Integer
@@ -115,11 +108,11 @@ instance FromJSON Field where
           "Text"     -> pure Text
           unknown    -> fail ("Unexpected type: " <> Text.unpack unknown)
 
-    disabled  <- field .: "disabled"
-    localized <- field .: "localized"
-    name      <- field .: "name"
-    omitted   <- field .: "omitted"
-    required  <- field .: "required"
-    value     <- parseType field
+    disabled  <- obj .: "disabled"
+    localized <- obj .: "localized"
+    name      <- obj .: "name"
+    omitted   <- obj .: "omitted"
+    required  <- obj .: "required"
+    value     <- parseType obj
 
     pure Field{..}

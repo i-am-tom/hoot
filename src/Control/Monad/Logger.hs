@@ -26,10 +26,16 @@ import Prelude hiding (log)
 -- | The interface for 'Logger' looks very similar to 'MonadWriter', but it
 -- doesn't require @Monoid w@. Conceptually, we can think of @MonadLogger w m@
 -- as being morally equivalent to @MonadWriter [w] m@; we're just logging each
--- action in turn.
+-- action in turn. However, we typically don't "collect" logs; we just print
+-- them out, according to the provided sinking function.
 --
--- However, we typically don't "collect" logs; we just print them out,
--- according to the provided sinking function.
+-- An implementation should satisfy the following laws:
+--
+-- prop> m `logging` id == m
+--
+-- prop> (m `logging` f) `logging` g == m `logging` (g . f)
+--
+-- prop> log x `logging` f == log (f x)
 class Monad m => MonadLogger (w :: Type) (m :: Type -> Type) | m -> w where
 
   -- | Log a message with the sinking function.
@@ -38,6 +44,9 @@ class Monad m => MonadLogger (w :: Type) (m :: Type -> Type) | m -> w where
 -- | In our code, we should try not to concretise the transformer stack
 -- anywhere but at the application level. If we simply stick to constraints, we
 -- can use this function to map the logs of an inner function to an outer one.
+--
+-- /This function isn't new; it exists in the @co-log@ library as @withLog@. My
+-- only real contribution is that it's polymorphic./
 logging :: MonadLogger o m => LoggerT i m x -> (i -> o) -> m x
 logging inner f = runLoggerT inner (log . f)
 

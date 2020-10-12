@@ -6,6 +6,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ViewPatterns #-}
+
+{-|
+Module      : Hoot.Contentful.Entry
+Description : Type definitions for Contentful's entries.
+Copyright   : (c) Tom Harding, 2020
+License     : MIT
+Maintainer  : i.am.tom.harding@gmail.com
+Stability   : experimental
+-}
 module Hoot.Contentful.Entry where
 
 import Data.Aeson ((.:), FromJSON (..), Value)
@@ -27,7 +36,7 @@ import Hoot.Contentful.Id (Id (..), Rolodex)
 import Prelude hiding (id)
 
 -- | An entry is a map from field names to their contents, with the type of the
--- contents being defined by a 'ContentType' schema.
+-- contents being defined by a 'Model.ContentType' schema.
 data Entry
   = Entry
       { id     :: Id Entry
@@ -37,8 +46,9 @@ data Entry
 
 -- | The content of an entry's field has a type corresponding to a value of
 -- 'T.Type'. The schema is important, as the representations of these types
--- aren't mutually exclusive: for example, a 'Link' will always parse as an
--- 'Object', but we need to know that it's a 'Link' in order to resolve it.
+-- aren't mutually exclusive: for example, a 'Model.Link' will always parse as
+-- an 'Object', but we need to know that it's a 'Model.Link' in order to
+-- resolve it.
 data Content
   = Array [Content]
   | Boolean Bool
@@ -54,9 +64,9 @@ data Content
   | Null -- ^ This value was optional and/or omitted.
   deriving stock (Eq, Generic, Ord, Show)
 
--- | Parse an 'Entry' 'field' according to a 'Model.Type' definition. This
--- function could be recursive if the value is expected to be an 'Array' of a
--- given 'Model.Type'.
+-- | Parse an 'Entry' 'Model.field' according to a 'Model.Type' definition.
+-- This function could be recursive if the value is expected to be an 'Array'
+-- of a given 'Model.Type'.
 parseValue :: Model.Type -> Value -> Parser Content
 parseValue = \case
   Model.Boolean -> Aeson.withBool "Boolean" (pure . Boolean)
@@ -91,8 +101,8 @@ parseValue = \case
 
     pure Location{..}
 
--- | Given an unparsed 'Entry', figure out its 'ContentType', and then parse it
--- according to that 'ContentType''s schema.
+-- | Given an unparsed 'Entry', figure out its 'Model.ContentType', and then
+-- parse it according to that 'Model.ContentType''s schema.
 parseEntry :: Rolodex Model.ContentType -> Value -> Parser Entry
 parseEntry schema = Aeson.withObject "Entry" \obj ->
   obj .: "sys" >>= Aeson.withObject "sys" \sys ->

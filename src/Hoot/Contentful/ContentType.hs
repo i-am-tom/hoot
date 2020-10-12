@@ -57,7 +57,7 @@ instance FromJSON ContentType where
     pure ContentType{..}
 
 -- | The type of nested Contentful links.
-data Link
+data LinkType
   = Asset -- ^ A link to an asset (such as an image).
   | Entry -- ^ A link to another piece of content (to nest within this one).
   deriving stock (Eq, Generic, Ord, Show)
@@ -65,16 +65,16 @@ data Link
 
 -- | The type of values that are allowed in a field.
 data Type
-  = Array Type -- ^ Some number of values of the same type.
-  | Boolean    -- ^ A boolean value.
-  | Date       -- ^ An ISO 8601 date string.
-  | Integer    -- ^ An integer value.
-  | Link Link  -- ^ A link to another Contentful entry.
-  | Location   -- ^ A @{ lat, lon }@ object.
-  | Number     -- ^ A floating-point value.
-  | Object     -- ^ A JSON object.
-  | Symbol     -- ^ A short string of text.
-  | Text       -- ^ A long string of text.
+  = Array Type     -- ^ Some number of values of the same type.
+  | Boolean        -- ^ A boolean value.
+  | Date           -- ^ An ISO 8601 date string.
+  | Integer        -- ^ An integer value.
+  | Link LinkType  -- ^ A link to another Contentful entry.
+  | Location       -- ^ A @{ lat, lon }@ object.
+  | Number         -- ^ A floating-point value.
+  | Object         -- ^ A JSON object.
+  | Symbol         -- ^ A short string of text.
+  | Text           -- ^ A long string of text.
   deriving stock (Eq, Generic, Ord, Show)
   deriving anyclass (Hashable)
 
